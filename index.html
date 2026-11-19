@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ignite Points Hunter</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;800&family=DM+Sans:wght@400;500;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+/* Direction: night-sky ink background, rubber-duck yellow for points, three category hues. Layout: sticky scoreboard, then planner + three quest lanes. */
+:root{
+  --ink:#0d1117; --panel:#161b22; --line:#2a313c; --text:#e6edf3; --mute:#8b96a5;
+  --duck:#ffc933; --duck-ink:#2b2100;
+  --c-duck:#ffc933; --c-free:#ff7ab6; --c-skill:#4cc2ff; --ok:#3fb950;
+  --display:'Bricolage Grotesque','Segoe UI',sans-serif; --body:'DM Sans','Segoe UI',sans-serif; --mono:'JetBrains Mono',ui-monospace,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--ink);color:var(--text);font-family:var(--body);font-size:15px;line-height:1.45}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--duck);outline-offset:2px}
+.wrap{max-width:1120px;margin:0 auto;padding:0 16px 56px}
+header.top{padding:28px 0 8px;display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;justify-content:space-between}
+h1{font-family:var(--display);font-weight:800;font-size:clamp(28px,5vw,44px);margin:0;letter-spacing:-.02em;text-wrap:balance}
+h1 span{color:var(--duck)}
+.sub{color:var(--mute);margin:4px 0 0;max-width:60ch}
+.tools{display:flex;gap:8px;flex-wrap:wrap}
+.btn{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 12px;cursor:pointer;font-weight:500}
+.btn:hover{border-color:var(--mute)}
+.btn.primary{background:var(--duck);color:var(--duck-ink);border-color:var(--duck);font-weight:700}
+.btn.primary:hover{filter:brightness(1.08)}
+.score{position:sticky;top:0;z-index:5;background:linear-gradient(var(--ink) 85%,transparent);padding:12px 0 16px}
+.score-grid{display:grid;grid-template-columns:minmax(220px,1.1fr) 2fr;gap:12px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px}
+.big{font-family:var(--mono);font-weight:700;font-size:clamp(40px,7vw,64px);line-height:1;color:var(--duck);font-variant-numeric:tabular-nums}
+.big small{font-size:.35em;color:var(--mute);font-weight:500;margin-left:6px}
+.rank{font-family:var(--display);font-weight:600;font-size:18px;margin-top:8px}
+.rank em{font-style:normal;color:var(--mute);font-family:var(--body);font-size:13px;margin-left:6px}
+.bars{display:grid;gap:12px;align-content:center}
+.bar-row{display:grid;grid-template-columns:130px 1fr 90px;gap:10px;align-items:center;font-size:13px}
+.bar{height:10px;background:var(--ink);border-radius:99px;overflow:hidden;border:1px solid var(--line)}
+.bar i{display:block;height:100%;width:0;border-radius:99px;transition:width .5s}
+.bar-row b{font-family:var(--mono);text-align:right;font-variant-numeric:tabular-nums}
+.sweep{font-size:12px;color:var(--mute)}
+.sweep.got{color:var(--ok)}
+h2{font-family:var(--display);font-size:22px;margin:28px 0 10px}
+.planner{display:grid;grid-template-columns:minmax(240px,1fr) 2fr;gap:12px}
+.planner label{display:block;font-size:13px;color:var(--mute);margin-bottom:6px}
+input[type=range]{width:100%;accent-color:var(--duck)}
+.mins{font-family:var(--mono);font-size:28px;font-weight:700}
+.plan{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.plan li{display:grid;grid-template-columns:28px 1fr auto auto;gap:10px;align-items:center;padding:8px 10px;background:var(--ink);border:1px solid var(--line);border-radius:8px;font-size:14px}
+.plan .n{font-family:var(--mono);color:var(--mute)}
+.plan .m{font-family:var(--mono);font-size:12px;color:var(--mute)}
+.plan .p{font-family:var(--mono);font-weight:700;color:var(--duck)}
+.plan-sum{margin-top:10px;display:flex;gap:12px;flex-wrap:wrap;align-items:center;font-size:13px;color:var(--mute)}
+.lanes{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.lane h3{margin:0 0 4px;font-family:var(--display);font-size:18px;display:flex;justify-content:space-between;gap:8px}
+.lane .note{color:var(--mute);font-size:12px;margin:0 0 10px}
+.q{display:grid;grid-template-columns:24px 1fr auto;gap:10px;align-items:center;padding:9px 0;border-top:1px solid var(--line)}
+.q input[type=checkbox]{width:20px;height:20px;accent-color:var(--ok);cursor:pointer;margin:0}
+.q .nm{font-weight:500}
+.q .wh{font-size:12px;color:var(--mute)}
+.q.done .nm{text-decoration:line-through;color:var(--mute)}
+.q .pt{font-family:var(--mono);font-weight:700;font-variant-numeric:tabular-nums;text-align:right}
+.q .pt small{display:block;font-size:11px;color:var(--mute);font-weight:500}
+.q .x{background:none;border:0;color:var(--mute);cursor:pointer;padding:0 0 0 6px;font-size:16px}
+.add{display:grid;grid-template-columns:2fr 1.4fr 1fr .8fr .8fr auto;gap:8px;align-items:end}
+.add label{font-size:12px;color:var(--mute);display:block;margin-bottom:4px}
+.add input,.add select{width:100%;background:var(--ink);border:1px solid var(--line);border-radius:8px;padding:8px}
+.pop{position:fixed;pointer-events:none;font-family:var(--mono);font-weight:700;color:var(--duck);font-size:26px;animation:pop 1s ease-out forwards;z-index:20;text-shadow:0 2px 12px #000}
+@keyframes pop{from{opacity:1;transform:translateY(0) scale(1)}to{opacity:0;transform:translateY(-70px) scale(1.4)}}
+.foot{margin-top:32px;color:var(--mute);font-size:12px;max-width:80ch}
+#toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 14px;display:none;z-index:30}
+@media (prefers-reduced-motion:reduce){.pop{animation:none;opacity:0}.bar i{transition:none}}
+@media (max-width:860px){.score-grid,.planner,.lanes{grid-template-columns:1fr}.add{grid-template-columns:1fr 1fr}.bar-row{grid-template-columns:100px 1fr 80px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>Ignite <span>Points</span> Hunter</h1>
+      <p class="sub">Every duck, every freebie, every Skills Navigator step, ranked by points per minute so you spend your conference time where it pays.</p>
+    </div>
+    <div class="tools">
+      <button class="btn primary" id="demo">Run demo</button>
+      <button class="btn" id="copy">Copy my score</button>
+      <button class="btn" id="reset">Reset</button>
+    </div>
+  </header>
+
+  <section class="score" aria-label="Scoreboard">
+    <div class="score-grid">
+      <div class="card">
+        <div class="big"><span id="total">0</span><small>pts</small></div>
+        <div class="rank"><span id="rank">Rookie</span><em id="rankNext"></em></div>
+      </div>
+      <div class="card bars" id="bars"></div>
+    </div>
+  </section>
+
+  <h2>Time planner</h2>
+  <section class="planner">
+    <div class="card">
+      <label for="budget">Minutes I can spend right now</label>
+      <div class="mins"><span id="budgetOut">60</span> min</div>
+      <input type="range" id="budget" min="10" max="480" step="5" value="60">
+      <p class="sweep">Picks the open quests with the best points per minute that fit your time.</p>
+    </div>
+    <div class="card">
+      <ol class="plan" id="plan"></ol>
+      <div class="plan-sum"><span id="planSum"></span><button class="btn" id="doPlan">Mark this plan done</button></div>
+    </div>
+  </section>
+
+  <h2>Quest board</h2>
+  <section class="lanes" id="lanes"></section>
+
+  <h2>Add a quest</h2>
+  <form class="card add" id="addForm">
+    <div><label for="aName">What</label><input id="aName" required placeholder="Duck at the Hub"></div>
+    <div><label for="aWhere">Where</label><input id="aWhere" placeholder="Level 2, Hall B"></div>
+    <div><label for="aCat">Lane</label>
+      <select id="aCat"><option value="duck">Ducks</option><option value="free">Freebies</option><option value="skill">Skills Navigator</option></select></div>
+    <div><label for="aPts">Points</label><input id="aPts" type="number" min="1" value="50" required></div>
+    <div><label for="aMin">Minutes</label><input id="aMin" type="number" min="1" value="10" required></div>
+    <button class="btn primary" type="submit">Add</button>
+  </form>
+
+  <p class="foot">Point values, locations and time estimates here are starting guesses. Edit them to match the official Ignite 2026 rules and the signs on the floor. The sweep bonus is this app's own game mechanic, not an Ignite prize. Skills Navigator quests follow what Microsoft has described for it: profile, conversational playlists, on-demand labs, Practice boost, badges and exam vouchers.</p>
+</div>
+<div id="toast" role="status"></div>
+
+<script>
+(function(){
+  var CATS={
+    duck:{label:'Ducks',color:'var(--c-duck)',note:'Find them, scan them, win them.',sweep:150},
+    free:{label:'Freebies',color:'var(--c-free)',note:'Swag, stickers and raffle entries.',sweep:100},
+    skill:{label:'Skills Navigator',color:'var(--c-skill)',note:'Learn, practice, earn the badge.',sweep:300}
+  };
+  var RANKS=[[0,'Rookie'],[15,'Duck Spotter'],[35,'Swag Collector'],[60,'Skills Sage'],[85,'Ignite Legend']];
+  var KEY='ignite-points-hunter-v1';
+  function seed(){
+    var s=[
+      ['duck','Duck: Expo Hall entrance','Expo Hall',75,10],['duck','Duck: GitHub booth','Expo Hall',100,15],
+      ['duck','Duck: Microsoft Learn zone','Learn zone',75,10],['duck','Duck: Registration desk','Level 1',50,5],
+      ['duck','Duck: Lunch area','Dining hall',50,10],['duck','Duck: Partner pavilion','Partner pavilion',100,20],
+      ['duck','Duck: Session level lobby','Level 2',75,10],['duck','Duck: The Hub','The Hub',125,20],
+      ['free','Sticker pack','GitHub booth',20,3],['free','Limited-edition tee','Swag counter',60,15],
+      ['free','Raffle entry: hoodie','Partner pavilion',40,5],['free','Water bottle','Registration',30,5],
+      ['free','Pin set','Expo Hall',25,5],['free','Tote bag','Registration',20,2],['free','Copilot socks','GitHub booth',50,8],
+      ['skill','Sign in and build my profile','AI Skills Navigator',50,5],['skill','Chat to generate a skilling playlist','AI Skills Navigator',75,10],
+      ['skill','Launch an on-demand lab','AI Skills Navigator',150,30],['skill','Try Practice boost','AI Skills Navigator',100,15],
+      ['skill','Finish a full playlist','AI Skills Navigator',200,45],['skill','Earn a Credly badge','AI Skills Navigator',150,20],
+      ['skill','Claim the exam voucher','AI Skills Navigator',100,5]
+    ];
+    return s.map(function(r,i){return {id:'s'+i,cat:r[0],name:r[1],where:r[2],pts:r[3],mins:r[4],done:false};});
+  }
+  var Q=load();
+  function load(){try{var v=localStorage.getItem(KEY);if(v){var p=JSON.parse(v);if(Array.isArray(p)&&p.length)return p;}}catch(e){}return seed();}
+  function save(){try{localStorage.setItem(KEY,JSON.stringify(Q));}catch(e){}}
+  var $=function(id){return document.getElementById(id);};
+  function el(tag,cls,txt){var e=document.createElement(tag);if(cls)e.className=cls;if(txt!=null)e.textContent=txt;return e;}
+
+  function stats(cat){
+    var all=Q.filter(function(q){return q.cat===cat;});
+    var d=all.filter(function(q){return q.done;});
+    var pts=d.reduce(function(a,q){return a+q.pts;},0);
+    var max=all.reduce(function(a,q){return a+q.pts;},0);
+    return {n:all.length,dn:d.length,pts:pts,max:max,swept:all.length>0&&d.length===all.length};
+  }
+  function totals(){
+    var t=0,m=0;
+    Object.keys(CATS).forEach(function(c){var s=stats(c);t+=s.pts+(s.swept?CATS[c].sweep:0);m+=s.max+(s.n?CATS[c].sweep:0);});
+    return {t:t,m:m};
+  }
+  function render(){
+    var tt=totals();
+    $('total').textContent=tt.t.toLocaleString();
+    var pct=tt.m?Math.round(tt.t/tt.m*100):0,ri=0;
+    RANKS.forEach(function(r,i){if(pct>=r[0])ri=i;});
+    $('rank').textContent=RANKS[ri][1];
+    $('rankNext').textContent=ri<RANKS.length-1?(RANKS[ri+1][0]-pct)+'% to '+RANKS[ri+1][1]:'Top of the board';
+    var bars=$('bars');bars.textContent='';
+    Object.keys(CATS).forEach(function(c){
+      var s=stats(c),row=el('div','bar-row'),lab=el('span',null,CATS[c].label+' '+s.dn+'/'+s.n);
+      var bar=el('div','bar'),fill=el('i');fill.style.background=CATS[c].color;fill.style.width=(s.max?s.pts/s.max*100:0)+'%';bar.appendChild(fill);
+      row.appendChild(lab);row.appendChild(bar);row.appendChild(el('b',null,s.pts+'/'+s.max));bars.appendChild(row);
+      var sw=el('div','sweep'+(s.swept?' got':''),s.swept?'Sweep bonus earned: +'+CATS[c].sweep:'Finish every '+CATS[c].label.toLowerCase()+' quest for +'+CATS[c].sweep);
+      sw.style.gridColumn='1 / -1';sw.style.marginTop='-6px';row.appendChild(sw);
+    });
+    renderLanes();renderPlan();save();
+  }
+  function renderLanes(){
+    var L=$('lanes');L.textContent='';
+    Object.keys(CATS).forEach(function(c){
+      var card=el('div','card lane'),s=stats(c);
+      var h=el('h3');h.appendChild(el('span',null,CATS[c].label));var b=el('span',null,s.pts+' pts');b.style.color=CATS[c].color;b.style.fontFamily='var(--mono)';h.appendChild(b);
+      card.appendChild(h);card.appendChild(el('p','note',CATS[c].note));
+      Q.filter(function(q){return q.cat===c;}).forEach(function(q){
+        var r=el('div','q'+(q.done?' done':'')),cb=el('input');cb.type='checkbox';cb.checked=q.done;cb.id='cb-'+q.id;cb.setAttribute('aria-label',q.name);
+        cb.addEventListener('change',function(e){toggle(q.id,e);});
+        var mid=el('div');mid.appendChild(el('div','nm',q.name));mid.appendChild(el('div','wh',(q.where||'Anywhere')+' · ~'+q.mins+' min'));
+        var right=el('div','pt','+'+q.pts);var rm=el('button','x','×');rm.title='Remove';rm.setAttribute('aria-label','Remove '+q.name);
+        rm.addEventListener('click',function(){Q=Q.filter(function(z){return z.id!==q.id;});render();});
+        var wrap=el('div');wrap.style.display='flex';wrap.style.alignItems='center';wrap.appendChild(right);wrap.appendChild(rm);
+        r.appendChild(cb);r.appendChild(mid);r.appendChild(wrap);card.appendChild(r);
+      });
+      L.appendChild(card);
+    });
+  }
+  function pop(txt,x,y){
+    if(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+    var p=el('div','pop',txt);p.style.left=x+'px';p.style.top=y+'px';document.body.appendChild(p);setTimeout(function(){p.remove();},1000);
+  }
+  function toggle(id,ev){
+    var q=Q.find(function(z){return z.id===id;});if(!q)return;
+    var before=totals().t;q.done=!q.done;
+    var gain=totals().t-before;
+    if(ev&&ev.target){var r=ev.target.getBoundingClientRect();pop((gain>=0?'+':'')+gain,r.left,r.top);}
+    render();
+  }
+  function planFor(mins){
+    var open=Q.filter(function(q){return !q.done;}).sort(function(a,b){return b.pts/b.mins-a.pts/a.mins;});
+    var left=mins,out=[];
+    open.forEach(function(q){if(q.mins<=left){out.push(q);left-=q.mins;}});
+    return out;
+  }
+  function renderPlan(){
+    var mins=+$('budget').value;$('budgetOut').textContent=mins;
+    var plan=planFor(mins),ol=$('plan');ol.textContent='';
+    if(!plan.length){var li=el('li',null,'Nothing open fits in this time. Raise the slider or add a quest.');li.style.display='block';ol.appendChild(li);}
+    var pts=0,tm=0;
+    plan.forEach(function(q,i){
+      pts+=q.pts;tm+=q.mins;var li=el('li');
+      li.appendChild(el('span','n',String(i+1)));
+      var nm=el('span',null,q.name+' · '+(q.where||'Anywhere'));li.appendChild(nm);
+      li.appendChild(el('span','m',q.mins+' min · '+(q.pts/q.mins).toFixed(1)+'/min'));li.appendChild(el('span','p','+'+q.pts));ol.appendChild(li);
+    });
+    $('planSum').textContent=plan.length?plan.length+' quests, '+pts+' points in '+tm+' of '+mins+' minutes':'';
+    $('doPlan').style.display=plan.length?'':'none';
+  }
+  function toast(m){var t=$('toast');t.textContent=m;t.style.display='block';clearTimeout(toast.h);toast.h=setTimeout(function(){t.style.display='none';},2200);}
+
+  $('budget').addEventListener('input',renderPlan);
+  $('doPlan').addEventListener('click',function(){planFor(+$('budget').value).forEach(function(q){q.done=true;});render();toast('Plan marked done');});
+  $('reset').addEventListener('click',function(){if($('reset').dataset.arm){Q=seed();$('reset').textContent='Reset';delete $('reset').dataset.arm;render();return;}
+    $('reset').dataset.arm='1';$('reset').textContent='Click again to confirm';setTimeout(function(){delete $('reset').dataset.arm;$('reset').textContent='Reset';},3000);});
+  $('copy').addEventListener('click',function(){
+    var tt=totals(),txt='Ignite Points Hunter: '+tt.t+' pts, rank '+$('rank').textContent+'. '+
+      Object.keys(CATS).map(function(c){var s=stats(c);return CATS[c].label+' '+s.dn+'/'+s.n;}).join(', ')+'.';
+    try{navigator.clipboard.writeText(txt).then(function(){toast('Score copied');},function(){toast(txt);});}catch(e){toast(txt);}
+  });
+  $('addForm').addEventListener('submit',function(e){
+    e.preventDefault();
+    Q.push({id:'u'+Date.now(),cat:$('aCat').value,name:$('aName').value.trim(),where:$('aWhere').value.trim(),pts:Math.max(1,+$('aPts').value||1),mins:Math.max(1,+$('aMin').value||1),done:false});
+    $('aName').value='';$('aWhere').value='';render();toast('Quest added');
+  });
+  var demoTimer=null;
+  $('demo').addEventListener('click',function(){
+    if(demoTimer){clearInterval(demoTimer);demoTimer=null;$('demo').textContent='Run demo';return;}
+    Q.forEach(function(q){q.done=false;});render();$('demo').textContent='Stop demo';
+    var order=planFor(100000),i=0;
+    demoTimer=setInterval(function(){
+      if(i>=order.length){clearInterval(demoTimer);demoTimer=null;$('demo').textContent='Run demo';return;}
+      var q=order[i++],before=totals().t;q.done=true;var g=totals().t-before;
+      pop('+'+g,window.innerWidth/2,window.innerHeight/2);render();
+    },450);
+  });
+  render();
+})();
+</script>
+</body>
+</html>
